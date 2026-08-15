@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BilliardScore - Panel de Control Bot WhatsApp</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="dashboard-wrapper">
+    
+    <!-- HEADER BRANDING -->
+    <header class="main-header">
+      <div class="header-left">
+        <span class="bot-icon">🤖</span>
+        <h1>BILLIARD SCORE BOT</h1>
+      </div>
+      <div id="status-badge" class="status-badge initializing">
+        <span class="status-dot"></span>
+        <span id="status-text">Inicializando...</span>
+      </div>
+    </header>
+
+    <!-- CONTENIDO PRINCIPAL DE AUTENTICACIÓN Y GRUPOS -->
+    <main class="dashboard-body">
+      
+      <!-- SECCIÓN QR (SI ESPERA VINCULACIÓN) -->
+      <div id="qr-section" class="card-section hidden">
+        <div class="card-header">
+          <h2>📱 VINCULACIÓN CON CÓDIGO QR</h2>
+        </div>
+        <p class="section-desc">Abre WhatsApp en tu teléfono, ve a <strong>Menú › Dispositivos vinculados › Vincular un dispositivo</strong> y escanea este código QR:</p>
+        <div class="qr-container">
+          <img id="qr-image" src="" alt="Código QR WhatsApp" class="qr-img">
+        </div>
+        <span class="scan-hint">⏳ El código QR se actualiza automáticamente cada unos segundos...</span>
+      </div>
+
+      <!-- SECCIÓN GRUPOS Y CONFIGURACIÓN (SI ESTÁ CONECTADO) -->
+      <div id="connected-section" class="card-section hidden">
+        <div class="card-header">
+          <h2>💬 CONFIGURACIÓN DE GRUPO DE WHATSAPP</h2>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Teléfono Autenticado:</span>
+          <span id="connected-phone-val" class="info-val">+123456789</span>
+        </div>
+
+        <div class="form-group" style="margin-top: 16px;">
+          <label class="field-label">SELECCIONAR GRUPO DE WHATSAPP DEL CLUB:</label>
+          <div class="select-row">
+            <select id="groups-select" class="group-dropdown">
+              <option value="">Cargando grupos de WhatsApp...</option>
+            </select>
+            <button type="button" id="btn-refresh-groups" class="btn-secondary" title="Actualizar lista">🔄</button>
+          </div>
+        </div>
+
+        <div class="group-save-row">
+          <button type="button" id="btn-save-group" class="btn-gold">💾 GUARDAR GRUPO DEL CLUB</button>
+        </div>
+
+        <div id="current-group-badge" class="current-group-box hidden">
+          <span class="target-title">GRUPO CONFIGURADO ACTUALMENTE:</span>
+          <span id="target-group-name" class="target-name">Ninguno</span>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="test-section">
+          <h3>🧪 PRUEBA DE PUBLICACIÓN</h3>
+          <p class="test-desc">Prueba el envío automático enviando un boletín de prueba al grupo configurado:</p>
+          <button type="button" id="btn-send-test-msg" class="btn-cyan">🚀 ENVIAR MENSAJE DE PRUEBA AHORA</button>
+        </div>
+      </div>
+
+      <!-- SECCIÓN DISCONECTED -->
+      <div id="disconnected-section" class="card-section hidden">
+        <div class="card-header">
+          <h2>⚠️ WHATSAPP DESCONECTADO</h2>
+        </div>
+        <p class="section-desc">Se ha perdido la conexión con WhatsApp. El servidor intentará reconectar automáticamente...</p>
+      </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="main-footer">
+      <span>BilliardScore WhatsApp Bot v1.0 |AX Dev Investments</span>
+    </footer>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
