@@ -55,9 +55,19 @@ loadConfig();
 
 let sock = null;
 
-async function connectToWhatsApp() {
+async function connectToWhatsApp(resetAuth = false) {
   try {
     const authPath = path.join(__dirname, '.baileys_auth');
+    
+    if (resetAuth && fs.existsSync(authPath)) {
+      console.log('🧹 Limpiando credenciales antiguas para generar un nuevo código QR...');
+      try {
+        fs.rmSync(authPath, { recursive: true, force: true });
+      } catch (e) {
+        console.error('Error limpiando authPath:', e);
+      }
+    }
+
     if (!fs.existsSync(authPath)) {
       fs.mkdirSync(authPath, { recursive: true });
     }
@@ -99,19 +109,8 @@ async function connectToWhatsApp() {
         botState.status = 'DISCONNECTED';
         botState.qrCode = null;
 
-        if (statusCode === DisconnectReason.loggedOut) {
-          console.log('🧹 Limpiando credenciales antiguas para generar nuevo QR...');
-          try {
-            const authPath = path.join(__dirname, '.baileys_auth');
-            if (fs.existsSync(authPath)) {
-              fs.rmSync(authPath, { recursive: true, force: true });
-            }
-          } catch (e) {
-            console.error('Error al limpiar credenciales:', e);
-          }
-        }
-
-        setTimeout(connectToWhatsApp, 2500);
+        // Auto-limpieza y reconexión con reseteo de auth
+        setTimeout(() => connectToWhatsApp(true), 2000);
       } else if (connection === 'open') {
         console.log('✅ Cliente de WhatsApp Conectado y Listo!');
         botState.status = 'CONNECTED';
@@ -133,21 +132,23 @@ connectToWhatsApp();
 app.post('/api/reconnect', async (req, res) => {
   try {
     console.log('🔄 Forzando regeneración de QR por solicitud del cliente...');
-    const authPath = path.join(__dirname, '.baileys_auth');
-    if (fs.existsSync(authPath)) {
-      fs.rmSync(authPath, { recursive: true, force: true });
-    }
     botState.status = 'INITIALIZING';
     botState.qrCode = null;
-    connectToWhatsApp();
+    connectToWhatsApp(true);
     res.json({ success: true, message: 'Generando nuevo código QR...' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Estado actual
+// Estado actual con auto-recuperación
 app.get('/api/status', (req, res) => {
+  if (botState.status === 'DISCONNECTED') {
+    console.log('⚡ Estado DESCONECTADO detectado. Autolimpieza y regeneración de QR iniciada...');
+    botState.status = 'INITIALIZING';
+    connectToWhatsApp(true);
+  }
+
   res.json({
     status: botState.status,
     qrCode: botState.qrCode,
