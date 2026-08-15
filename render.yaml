@@ -2,7 +2,6 @@ services:
   - type: web
     name: billiardscore-whatsapp-bot
     env: node
-    plan: free
     buildCommand: npm install
     startCommand: node server.js
     envVars:
