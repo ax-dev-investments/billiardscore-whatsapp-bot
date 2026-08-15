@@ -58,13 +58,33 @@ const puppeteerArgs = [
   '--js-flags=--max-old-space-size=256'
 ];
 
+function getChromeExecutablePath() {
+  const possiblePaths = [
+    process.env.PUPPETEER_EXECUTABLE_PATH,
+    '/usr/bin/google-chrome-stable',
+    '/usr/bin/google-chrome',
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser'
+  ];
+
+  for (const p of possiblePaths) {
+    if (p && fs.existsSync(p)) {
+      console.log(`📌 Usando ejecutable de Chrome en: ${p}`);
+      return p;
+    }
+  }
+  console.log('📌 Usando ejecutable por defecto de Puppeteer');
+  return undefined;
+}
+
 const puppeteerOptions = {
   headless: true,
   args: puppeteerArgs
 };
 
-if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-  puppeteerOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+const chromePath = getChromeExecutablePath();
+if (chromePath) {
+  puppeteerOptions.executablePath = chromePath;
 }
 
 // Inicializar Cliente WhatsApp Web
@@ -106,10 +126,13 @@ client.on('disconnected', (reason) => {
   console.warn('⚠️ WhatsApp Desconectado:', reason);
   botState.status = 'DISCONNECTED';
   botState.qrCode = null;
-  client.initialize();
+  client.initialize().catch(err => console.error('Error al reconectar:', err));
 });
 
-client.initialize();
+client.initialize().catch(err => {
+  console.error('❌ Error al inicializar cliente de WhatsApp Web:', err);
+  botState.status = 'ERROR';
+});
 
 // ================= ROUTING & API =================
 
