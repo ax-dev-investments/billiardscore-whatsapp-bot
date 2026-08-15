@@ -165,38 +165,31 @@ app.post('/api/send-match-result', async (req, res) => {
     return res.status(400).json({ error: 'No se ha configurado un grupo de destino para enviar los mensajes.' });
   }
 
-  const { tableNum, modeText, player1, player2, score1, score2, winner, isDraw, clubName, raceText } = req.body;
+  const { tableNum, modeText, player1, player2, score1, score2, winner, isDraw, raceTo, rawMessage } = req.body;
 
-  const club = clubName || 'BilliardScore Club';
-  const table = tableNum ? `MESA ${tableNum}` : 'MESA';
-  const mode = modeText || 'Modo de Partida';
-  const race = raceText ? `(${raceText})` : '';
+  let message = rawMessage;
 
-  const now = new Date();
-  const dateStr = `${now.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`;
-  const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  if (!message) {
+    const p1 = player1 || 'Jugador 1';
+    const p2 = player2 || 'Jugador 2';
+    const s1 = score1 !== undefined ? score1 : 0;
+    const s2 = score2 !== undefined ? score2 : 0;
 
-  let resultHeader = '';
-  if (isDraw) {
-    resultHeader = '🤝 *¡RESULTADO EN EMPATE!* 🤝';
-  } else if (winner) {
-    resultHeader = `🥇 *¡GANADOR: ${winner.toUpperCase()}!* 🏆`;
-  } else {
-    resultHeader = '📊 *BOLETÍN OFICIAL DE PARTIDA*';
+    if (isDraw || winner === 'EMPATE') {
+      message = `Serie Libre, ${p1} (${s1}) vs ${p2} (${s2}) - EMPATE`;
+    } else if (raceTo === 'libre' || (!raceTo && !winner)) {
+      if (winner) {
+        message = `Serie Libre, ${p1} (${s1}) vs ${p2} (${s2}) - Ganador: ${winner}`;
+      } else {
+        message = `Serie Libre, ${p1} (${s1}) vs ${p2} (${s2})`;
+      }
+    } else if (raceTo === 1 || raceTo === '1') {
+      message = `${p1} vs ${p2} - Ganador: ${winner || p1}`;
+    } else {
+      const raceNum = String(raceTo).replace(/[^\d]/g, '') || raceTo || '5';
+      message = `Serie: ${raceNum}P, ${p1} (${s1}) vs ${p2} (${s2}) - Ganador: ${winner || p1}`;
+    }
   }
-
-  const message = 
-`🎱 *${club.toUpperCase()}* 🎱
------------------------------------------
-${resultHeader}
-
-📍 *Ubicación:* ${table} ${race}
-🎮 *Modalidad:* ${mode}
-
-👤 *${(player1 || 'Jugador 1').toUpperCase()}:* ${score1 || 0} mesa(s)
-👤 *${(player2 || 'Jugador 2').toUpperCase()}:* ${score2 || 0} mesa(s)
------------------------------------------
-📅 _${dateStr} | ${timeStr}_`;
 
   try {
     await client.sendMessage(targetGroupId, message);
