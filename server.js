@@ -141,11 +141,13 @@ app.post('/api/reconnect', async (req, res) => {
   }
 });
 
-// Estado actual con auto-recuperación
+// Estado actual con auto-recuperación y soporte de reset por URL (?reset=true)
 app.get('/api/status', (req, res) => {
-  if (botState.status === 'DISCONNECTED') {
-    console.log('⚡ Estado DESCONECTADO detectado. Autolimpieza y regeneración de QR iniciada...');
+  if (req.query.reset === 'true' || botState.status === 'DISCONNECTED') {
+    console.log('⚡ Reseteo de sesión detectado. Autolimpieza y regeneración de QR iniciada...');
     botState.status = 'INITIALIZING';
+    botState.qrCode = null;
+    botState.connectedPhone = null;
     connectToWhatsApp(true);
   }
 

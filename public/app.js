@@ -19,7 +19,14 @@ let currentTargetGroup = null;
 
 async function checkStatus() {
   try {
-    const res = await fetch('/api/status');
+    const isReset = window.location.search.includes('reset=true');
+    const url = isReset ? '/api/status?reset=true' : '/api/status';
+
+    if (isReset) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    const res = await fetch(url);
     const data = await res.json();
 
     updateStatusUI(data);
