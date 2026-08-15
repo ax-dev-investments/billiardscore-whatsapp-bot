@@ -51,7 +51,11 @@ const puppeteerArgs = [
   '--no-first-run',
   '--no-zygote',
   '--single-process',
-  '--disable-gpu'
+  '--disable-gpu',
+  '--disable-software-rasterizer',
+  '--disable-extensions',
+  '--mute-audio',
+  '--js-flags=--max-old-space-size=256'
 ];
 
 const puppeteerOptions = {
