@@ -217,8 +217,8 @@ app.post('/api/send-match-result', async (req, res) => {
   }
 });
 
-// Servidor escuchando
-app.listen(PORT, () => {
+// Servidor escuchando en 0.0.0.0 para compatibilidad con el proxy de Render Cloud
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`====================================================`);
   console.log(`🤖 BilliardScore WhatsApp Bot (Baileys Engine) iniciado en puerto ${PORT}`);
   console.log(`🌐 Panel de Control: http://localhost:${PORT}`);
