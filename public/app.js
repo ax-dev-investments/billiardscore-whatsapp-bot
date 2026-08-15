@@ -173,6 +173,28 @@ async function sendTestMessage() {
 DOM.btnRefreshGroups.addEventListener('click', loadGroups);
 DOM.btnSaveGroup.addEventListener('click', saveGroupSelection);
 DOM.btnSendTestMsg.addEventListener('click', sendTestMessage);
+DOM.btnReconnectManual = document.getElementById('btn-reconnect-manual');
+
+if (DOM.btnReconnectManual) {
+  DOM.btnReconnectManual.addEventListener('click', async () => {
+    DOM.btnReconnectManual.disabled = true;
+    DOM.btnReconnectManual.textContent = "⏳ Generando QR...";
+    try {
+      const res = await fetch('/api/reconnect', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        checkStatus();
+      } else {
+        alert("Error: " + data.error);
+      }
+    } catch (err) {
+      alert("Error de conexión: " + err.message);
+    } finally {
+      DOM.btnReconnectManual.disabled = false;
+      DOM.btnReconnectManual.textContent = "🔄 GENERAR NUEVO CÓDIGO QR";
+    }
+  });
+}
 
 // Polling cada 3 segundos para actualización de estado/QR
 checkStatus();

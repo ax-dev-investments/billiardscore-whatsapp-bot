@@ -95,13 +95,23 @@ async function connectToWhatsApp() {
 
       if (connection === 'close') {
         const statusCode = lastDisconnect?.error?.output?.statusCode;
-        const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
         console.warn('⚠️ Conexión de WhatsApp cerrada. Código:', statusCode);
         botState.status = 'DISCONNECTED';
         botState.qrCode = null;
-        if (shouldReconnect) {
-          setTimeout(connectToWhatsApp, 3000);
+
+        if (statusCode === DisconnectReason.loggedOut) {
+          console.log('🧹 Limpiando credenciales antiguas para generar nuevo QR...');
+          try {
+            const authPath = path.join(__dirname, '.baileys_auth');
+            if (fs.existsSync(authPath)) {
+              fs.rmSync(authPath, { recursive: true, force: true });
+            }
+          } catch (e) {
+            console.error('Error al limpiar credenciales:', e);
+          }
         }
+
+        setTimeout(connectToWhatsApp, 2500);
       } else if (connection === 'open') {
         console.log('✅ Cliente de WhatsApp Conectado y Listo!');
         botState.status = 'CONNECTED';
@@ -118,6 +128,23 @@ async function connectToWhatsApp() {
 connectToWhatsApp();
 
 // ================= ROUTING & API =================
+
+// Endpoint de reconexión forzada
+app.post('/api/reconnect', async (req, res) => {
+  try {
+    console.log('🔄 Forzando regeneración de QR por solicitud del cliente...');
+    const authPath = path.join(__dirname, '.baileys_auth');
+    if (fs.existsSync(authPath)) {
+      fs.rmSync(authPath, { recursive: true, force: true });
+    }
+    botState.status = 'INITIALIZING';
+    botState.qrCode = null;
+    connectToWhatsApp();
+    res.json({ success: true, message: 'Generando nuevo código QR...' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // Estado actual
 app.get('/api/status', (req, res) => {
