@@ -33,7 +33,7 @@ RUN apt-get update && apt-get install -y \
     libxi6 \
     libxrandr2 \
     libxrender1 \
-    libssse3 \
+    libxss1 \
     libxtst6 \
     ca-certificates \
     procps \
