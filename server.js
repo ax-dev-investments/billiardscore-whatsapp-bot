@@ -212,4 +212,11 @@ app.listen(PORT, () => {
   console.log(`🤖 BilliardScore WhatsApp Bot iniciado en puerto ${PORT}`);
   console.log(`🌐 Panel de Control: http://localhost:${PORT}`);
   console.log(`====================================================`);
+
+  // Auto-ping cada 10 minutos para mantener el contenedor en Render despierto 24/7
+  setInterval(() => {
+    fetch('https://billiardscore-whatsapp-bot.onrender.com/api/status')
+      .then(() => console.log('⏰ Keep-alive ping a Render Cloud exitoso'))
+      .catch(err => console.log('Keep-alive ping:', err.message));
+  }, 10 * 60 * 1000);
 });
