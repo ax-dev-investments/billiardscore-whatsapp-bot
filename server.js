@@ -119,7 +119,7 @@ app.get('/api/status', (req, res) => {
   });
 });
 
-// Obtener lista de grupos del WhatsApp conectado
+// Obtener lista de grupos y chats del WhatsApp conectado
 app.get('/api/groups', async (req, res) => {
   if (botState.status !== 'CONNECTED') {
     return res.status(400).json({ error: 'El WhatsApp no está conectado todavía.' });
@@ -127,13 +127,12 @@ app.get('/api/groups', async (req, res) => {
 
   try {
     const chats = await client.getChats();
-    const groups = chats
-      .filter(chat => chat.isGroup)
-      .map(group => ({
-        id: group.id._serialized,
-        name: group.name,
-        participantsCount: group.participants ? group.participants.length : 0
-      }));
+    const groups = chats.map(chat => ({
+      id: chat.id._serialized,
+      name: chat.isGroup ? `👥 [GRUPO] ${chat.name}` : `📱 [CHAT PERSONAL] ${chat.name || chat.id.user}`,
+      isGroup: chat.isGroup,
+      rawName: chat.name || chat.id.user
+    }));
 
     res.json({ groups });
   } catch (err) {
@@ -142,7 +141,7 @@ app.get('/api/groups', async (req, res) => {
   }
 });
 
-// Guardar grupo de destino
+// Guardar grupo o chat de destino
 app.post('/api/config', (req, res) => {
   const { targetGroup } = req.body;
   if (!targetGroup) {
@@ -160,9 +159,15 @@ app.post('/api/send-match-result', async (req, res) => {
     return res.status(400).json({ error: 'El servidor bot no está conectado a WhatsApp.' });
   }
 
-  const targetGroupId = req.body.targetGroupId || (botState.targetGroup ? botState.targetGroup.id : null);
+  let targetGroupId = req.body.customTargetPhone || req.body.targetGroupId || (botState.targetGroup ? botState.targetGroup.id : null);
+  
+  if (targetGroupId && !targetGroupId.includes('@')) {
+    // Si se pasa un número de teléfono (ej: 18491234567), formatear como JID de WhatsApp
+    targetGroupId = `${targetGroupId.replace(/[^\d]/g, '')}@c.us`;
+  }
+
   if (!targetGroupId) {
-    return res.status(400).json({ error: 'No se ha configurado un grupo de destino para enviar los mensajes.' });
+    return res.status(400).json({ error: 'No se ha configurado un destino (grupo o número) para enviar los mensajes.' });
   }
 
   const { tableNum, modeText, player1, player2, score1, score2, winner, isDraw, raceTo, rawMessage } = req.body;
