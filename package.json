@@ -1,18 +1,16 @@
 {
   "name": "billiardscore-whatsapp-bot",
   "version": "1.0.0",
-  "description": "Servidor Bot de WhatsApp con autenticación QR para BilliardScore",
+  "description": "Servidor Bot de WhatsApp autónomo 24/7 para BilliardScore",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "postinstall": "npx puppeteer browsers install chrome"
+    "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.19.2",
+    "@whiskeysockets/baileys": "^6.7.5",
     "cors": "^2.8.5",
-    "qrcode": "^1.5.3",
-    "puppeteer": "^21.5.0",
-    "whatsapp-web.js": "^1.26.0"
+    "express": "^4.19.2",
+    "qrcode": "^1.5.3"
   },
   "author": "AX Dev Investments",
   "license": "MIT"
