@@ -240,7 +240,35 @@ async function sendTestMessage() {
   }
 }
 
+function formatPhoneNumber(val) {
+  if (!val) return '';
+  let digits = val.replace(/\D/g, '');
+  if (digits.length > 11) digits = digits.substring(0, 11);
+
+  if (digits.length <= 3) {
+    return digits;
+  } else if (digits.length <= 6) {
+    return `${digits.substring(0, 3)}-${digits.substring(3)}`;
+  } else if (digits.length <= 10) {
+    return `${digits.substring(0, 3)}-${digits.substring(3, 6)}-${digits.substring(6)}`;
+  } else {
+    return `${digits.substring(0, 1)}-${digits.substring(1, 4)}-${digits.substring(4, 7)}-${digits.substring(7)}`;
+  }
+}
+
 // Bindings
+if (DOM.pairingPhoneInput) {
+  DOM.pairingPhoneInput.addEventListener('input', (e) => {
+    e.target.value = formatPhoneNumber(e.target.value);
+  });
+}
+
+if (DOM.testPersonalPhoneInput) {
+  DOM.testPersonalPhoneInput.addEventListener('input', (e) => {
+    e.target.value = formatPhoneNumber(e.target.value);
+  });
+}
+
 if (DOM.btnGetPairingCode) DOM.btnGetPairingCode.addEventListener('click', requestPairingCode);
 if (DOM.chkTestPersonalPhone) {
   DOM.chkTestPersonalPhone.addEventListener('change', () => {
