@@ -237,20 +237,10 @@ app.post('/api/send-match-result', async (req, res) => {
     return res.status(400).json({ error: 'El servidor bot no está conectado a WhatsApp.' });
   }
 
-  let targetId = req.body.customTargetPhone || req.body.targetGroupId || (botState.targetGroup ? botState.targetGroup.id : null);
-  
-  if (!targetId) {
-    return res.status(400).json({ error: 'No se ha configurado un destino (grupo o número) para enviar los mensajes.' });
-  }
-
-  // Formatear JID de WhatsApp
-  let jid = targetId.trim();
-  if (!jid.includes('@')) {
-    const cleanDigits = jid.replace(/\D/g, '');
-    jid = `${cleanDigits}@s.whatsapp.net`;
-  }
-
-  const { tableNum, modeText, player1, player2, score1, score2, winner, isDraw, raceTo, rawMessage } = req.body;
+  const {
+    tableNum, modeText, player1, player2, score1, score2, winner, isDraw, raceTo, rawMessage,
+    customTargetPhone, player1Phone, player2Phone
+  } = req.body;
 
   let message = rawMessage;
   if (!message) {
@@ -276,12 +266,71 @@ app.post('/api/send-match-result', async (req, res) => {
   }
 
   try {
-    await sock.sendMessage(jid, { text: message });
-    console.log(`💬 Mensaje enviado exitosamente a ${jid}`);
-    res.json({ success: true, message: 'Mensaje publicado en WhatsApp con éxito.' });
+    // 1. MODO PRUEBAS: Si se especificó customTargetPhone, enviar ÚNICAMENTE a ese número personal
+    if (customTargetPhone) {
+      const cleanDigits = customTargetPhone.replace(/\D/g, '');
+      if (cleanDigits) {
+        const jid = `${cleanDigits}@s.whatsapp.net`;
+        await sock.sendMessage(jid, { text: message });
+        console.log(`🧪 Resultado de prueba enviado a número personal: ${jid}`);
+        return res.json({ success: true, message: 'Enviado a número personal de pruebas' });
+      }
+    }
+
+    // 2. MODO PRODUCCIÓN: Enviar al Grupo del Club y a los números privados de los jugadores
+    const delivered = [];
+
+    // 2a. Enviar al Grupo del Club
+    const groupJid = req.body.targetGroupId || (botState.targetGroup ? botState.targetGroup.id : null);
+    if (groupJid) {
+      try {
+        await sock.sendMessage(groupJid, { text: message });
+        console.log(`📢 Resultado publicado en el grupo del club: ${groupJid}`);
+        delivered.push('Grupo del Club');
+      } catch (errGroup) {
+        console.error('Error enviando al grupo del club:', errGroup.message);
+      }
+    }
+
+    // 2b. Enviar a Jugador 1 (si tiene teléfono guardado)
+    if (player1Phone) {
+      const cleanP1 = player1Phone.replace(/\D/g, '');
+      if (cleanP1) {
+        const jidP1 = `${cleanP1}@s.whatsapp.net`;
+        try {
+          await sock.sendMessage(jidP1, { text: message });
+          console.log(`📱 Resultado enviado a ${player1} (${jidP1})`);
+          delivered.push(`Jugador 1 (${player1})`);
+        } catch (errP1) {
+          console.error(`Error enviando a ${player1}:`, errP1.message);
+        }
+      }
+    }
+
+    // 2c. Enviar a Jugador 2 (si tiene teléfono guardado)
+    if (player2Phone) {
+      const cleanP2 = player2Phone.replace(/\D/g, '');
+      if (cleanP2) {
+        const jidP2 = `${cleanP2}@s.whatsapp.net`;
+        try {
+          await sock.sendMessage(jidP2, { text: message });
+          console.log(`📱 Resultado enviado a ${player2} (${jidP2})`);
+          delivered.push(`Jugador 2 (${player2})`);
+        } catch (errP2) {
+          console.error(`Error enviando a ${player2}:`, errP2.message);
+        }
+      }
+    }
+
+    if (delivered.length > 0) {
+      return res.json({ success: true, deliveredTo: delivered });
+    } else {
+      return res.status(400).json({ error: 'No se configuró un grupo ni teléfonos válidos de jugadores.' });
+    }
+
   } catch (err) {
     console.error('Error enviando mensaje a WhatsApp:', err);
-    res.status(500).json({ error: 'Error al enviar mensaje a WhatsApp: ' + err.message });
+    return res.status(500).json({ error: 'Error al enviar mensaje a WhatsApp: ' + err.message });
   }
 });
 
