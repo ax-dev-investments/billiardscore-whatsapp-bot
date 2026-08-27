@@ -14,6 +14,9 @@ const DOM = {
   btnSaveGroup: document.getElementById('btn-save-group'),
   currentGroupBadge: document.getElementById('current-group-badge'),
   targetGroupName: document.getElementById('target-group-name'),
+  chkTestPersonalPhone: document.getElementById('chk-test-personal-phone'),
+  testPhoneBox: document.getElementById('test-phone-box'),
+  testPersonalPhoneInput: document.getElementById('test-personal-phone-input'),
   btnSendTestMsg: document.getElementById('btn-send-test-msg'),
   disconnectedSection: document.getElementById('disconnected-section')
 };
@@ -139,7 +142,7 @@ async function loadGroups() {
       cachedGroups.forEach(g => {
         const opt = document.createElement('option');
         opt.value = g.id;
-        opt.textContent = `${g.name} (${g.participantsCount} miembros)`;
+        opt.textContent = g.rawName ? `👥 [GRUPO] ${g.rawName}` : g.name;
         if (currentTargetGroup && currentTargetGroup.id === g.id) {
           opt.selected = true;
         }
@@ -184,32 +187,51 @@ async function saveGroupSelection() {
 }
 
 async function sendTestMessage() {
-  if (!currentTargetGroup) {
-    alert("Primero debes seleccionar y guardar el grupo del club.");
-    return;
+  const isPersonalTest = DOM.chkTestPersonalPhone ? DOM.chkTestPersonalPhone.checked : false;
+  const personalPhone = DOM.testPersonalPhoneInput ? DOM.testPersonalPhoneInput.value.trim() : '';
+
+  if (isPersonalTest) {
+    if (!personalPhone) {
+      alert("Por favor ingresa tu número de teléfono personal para enviar la prueba.");
+      return;
+    }
+  } else {
+    if (!currentTargetGroup) {
+      alert("Primero debes seleccionar y guardar el grupo del club (o activar el cotejo para enviar a tu número personal).");
+      return;
+    }
   }
 
   try {
+    const payload = {
+      tableNum: 1,
+      modeText: 'Modo Libre (Partida de Prueba)',
+      player1: 'Alex',
+      player2: 'Jugador Retador',
+      score1: 5,
+      score2: 3,
+      winner: 'Alex',
+      isDraw: false,
+      rawMessage: '🧪 DEMOSTRACIÓN DE PRUEBA: Serie: 5P, Jugador Retador (3) vs Alex (5) - Ganador: Alex'
+    };
+
+    if (isPersonalTest && personalPhone) {
+      payload.customTargetPhone = personalPhone;
+    }
+
     const res = await fetch('/api/send-match-result', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tableNum: 1,
-        modeText: 'Modo Libre (Partida de Prueba)',
-        player1: 'Alex',
-        player2: 'Jugador Prueba',
-        score1: 5,
-        score2: 3,
-        winner: 'Alex',
-        isDraw: false,
-        clubName: 'Billar Score LP9',
-        raceText: 'Carrera a 5'
-      })
+      body: JSON.stringify(payload)
     });
     const data = await res.json();
 
     if (data.success) {
-      alert("🎉 ¡Mensaje de prueba publicado con éxito en el grupo de WhatsApp!");
+      if (isPersonalTest) {
+        alert(`🎉 ¡Mensaje de prueba enviado exitosamente a tu WhatsApp personal (+${personalPhone})!`);
+      } else {
+        alert("🎉 ¡Mensaje de prueba publicado con éxito en el grupo del club de WhatsApp!");
+      }
     } else {
       alert("Error al enviar mensaje: " + data.error);
     }
@@ -220,6 +242,15 @@ async function sendTestMessage() {
 
 // Bindings
 if (DOM.btnGetPairingCode) DOM.btnGetPairingCode.addEventListener('click', requestPairingCode);
+if (DOM.chkTestPersonalPhone) {
+  DOM.chkTestPersonalPhone.addEventListener('change', () => {
+    if (DOM.chkTestPersonalPhone.checked) {
+      DOM.testPhoneBox.classList.remove('hidden');
+    } else {
+      DOM.testPhoneBox.classList.add('hidden');
+    }
+  });
+}
 DOM.btnRefreshGroups.addEventListener('click', loadGroups);
 DOM.btnSaveGroup.addEventListener('click', saveGroupSelection);
 DOM.btnSendTestMsg.addEventListener('click', sendTestMessage);

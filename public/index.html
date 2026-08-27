@@ -94,12 +94,25 @@
           <span id="target-group-name" class="target-name">Ninguno</span>
         </div>
 
-        <div class="divider"></div>
+        <div class="divider" style="height: 1px; background: #243040; margin: 20px 0;"></div>
 
-        <div class="test-section">
-          <h3>🧪 PRUEBA DE PUBLICACIÓN</h3>
-          <p class="test-desc">Prueba el envío automático enviando un boletín de prueba al grupo configurado:</p>
-          <button type="button" id="btn-send-test-msg" class="btn-cyan">🚀 ENVIAR MENSAJE DE PRUEBA AHORA</button>
+        <div class="test-section" style="background: rgba(18, 24, 32, 0.9); padding: 16px; border-radius: 12px; border: 1px solid #243040;">
+          <h3 style="font-size: 1.1rem; color: #ffc83b; margin-bottom: 6px;">🧪 PRUEBA DE PUBLICACIÓN Y MODO PRUEBAS</h3>
+          <p class="test-desc" style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 12px;">Prueba el envío automático enviando un boletín de prueba al grupo o a tu número personal:</p>
+          
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label style="display: flex; align-items: center; gap: 10px; font-weight: 700; cursor: pointer; color: #00e6a8; font-size: 0.95rem;">
+              <input type="checkbox" id="chk-test-personal-phone" style="width: 20px; height: 20px; accent-color: #00e6a8; cursor: pointer;">
+              <span>☑️ Activar Modo Pruebas (Enviar prueba a mi número personal)</span>
+            </label>
+          </div>
+
+          <div id="test-phone-box" class="form-group hidden" style="margin-bottom: 14px; background: rgba(0, 230, 168, 0.08); padding: 10px; border-radius: 8px; border: 1px dashed #00e6a8;">
+            <label class="field-label" style="font-size: 0.8rem; color: #00e6a8; font-weight: 800;">INGRESAR NÚMERO PERSONAL PARA PRUEBAS (CON CÓDIGO DE PAÍS):</label>
+            <input type="tel" id="test-personal-phone-input" class="group-dropdown" placeholder="Ej: 18495012560" style="padding: 10px; font-size: 1rem; border-radius: 8px; border: 1px solid #243040; background: #080c11; color: #fff; width: 100%; margin-top: 4px;">
+          </div>
+
+          <button type="button" id="btn-send-test-msg" class="btn-cyan" style="width: 100%; padding: 12px; font-size: 1rem; font-weight: 800; border-radius: 8px;">🚀 ENVIAR MENSAJE DE PRUEBA AHORA</button>
         </div>
       </div>
 
