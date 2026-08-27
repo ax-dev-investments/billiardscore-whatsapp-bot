@@ -27,16 +27,42 @@
     <!-- CONTENIDO PRINCIPAL DE AUTENTICACIÓN Y GRUPOS -->
     <main class="dashboard-body">
       
-      <!-- SECCIÓN QR (SI ESPERA VINCULACIÓN) -->
+      <!-- SECCIÓN QR / CÓDIGO DE VINCULACIÓN (SI ESPERA VINCULACIÓN) -->
       <div id="qr-section" class="card-section hidden">
         <div class="card-header">
-          <h2>📱 VINCULACIÓN CON CÓDIGO QR</h2>
+          <h2>📱 VINCULACIÓN CON CÓDIGO (RECOMENDADO) O QR</h2>
         </div>
-        <p class="section-desc">Abre WhatsApp en tu teléfono, ve a <strong>Menú › Dispositivos vinculados › Vincular un dispositivo</strong> y escanea este código QR:</p>
-        <div class="qr-container">
-          <img id="qr-image" src="" alt="Código QR WhatsApp" class="qr-img">
+        
+        <!-- OPCIÓN 1: VINCULAR POR CÓDIGO DE 8 DÍGITOS -->
+        <div class="pairing-box" style="background: rgba(18, 24, 32, 0.8); padding: 14px; border-radius: 12px; border: 1px solid #243040;">
+          <label class="field-label" style="font-weight: 800; color: #00e6a8;">🔢 OPCIÓN 1: VINCULAR CON NÚMERO DE TELÉFONO (SÍN USAR CÁMARA):</label>
+          <p class="section-desc" style="font-size: 0.85rem; margin-top: 4px; margin-bottom: 10px; color: #94a3b8;">
+            Ingresa tu número de WhatsApp con código de país (Ej: <strong>18091234567</strong> para Rep. Dom. / EE.UU.) para generar tu código de 8 dígitos:
+          </p>
+          <div class="select-row" style="display: flex; gap: 8px;">
+            <input type="tel" id="pairing-phone-input" class="group-dropdown" placeholder="Ej: 18091234567" style="flex: 1; padding: 10px; font-size: 1rem; border-radius: 8px; border: 1px solid #243040; background: #080c11; color: #fff;">
+            <button type="button" id="btn-get-pairing-code" class="btn-gold" style="padding: 10px 14px; white-space: nowrap; font-weight: 800;">🔑 GENERAR CÓDIGO</button>
+          </div>
+          
+          <div id="pairing-code-display" class="pairing-code-box hidden" style="margin-top: 14px; padding: 14px; background: rgba(0, 230, 168, 0.1); border: 2px dashed #00e6a8; border-radius: 12px; text-align: center;">
+            <span style="display: block; font-size: 0.8rem; color: #94a3b8; font-weight: 800;">TU CÓDIGO DE 8 DÍGITOS DE WHATSAPP ES:</span>
+            <span id="pairing-code-val" style="font-size: 2.2rem; font-weight: 900; letter-spacing: 4px; color: #ffc83b; font-family: 'JetBrains Mono', monospace; display: block; margin: 6px 0;">----</span>
+            <p style="font-size: 0.82rem; color: #f1f5f9; margin-top: 6px; line-height: 1.4;">
+              En tu teléfono ve a WhatsApp ➔ <strong>Dispositivos vinculados</strong> ➔ <strong>Vincular con el número de teléfono</strong> (abajo en texto azul) e ingresa este código.
+            </p>
+          </div>
         </div>
-        <span class="scan-hint">⏳ El código QR se actualiza automáticamente cada unos segundos...</span>
+
+        <div class="divider" style="height: 1px; background: #243040; margin: 16px 0;"></div>
+
+        <!-- OPCIÓN 2: CÓDIGO QR -->
+        <div class="qr-box">
+          <p class="section-desc" style="font-weight: 700; color: #f1f5f9; margin-bottom: 8px;">📷 OPCIÓN 2: ESCANEAR CÓDIGO QR CON LA CÁMARA:</p>
+          <div class="qr-container" style="text-align: center;">
+            <img id="qr-image" src="" alt="Código QR WhatsApp" class="qr-img">
+          </div>
+          <span class="scan-hint" style="display: block; text-align: center; font-size: 0.8rem; color: #94a3b8; margin-top: 6px;">⏳ Si la cámara falla en el escaneo, usa la Opción 1 de arriba (Código por teléfono).</span>
+        </div>
       </div>
 
       <!-- SECCIÓN GRUPOS Y CONFIGURACIÓN (SI ESTÁ CONECTADO) -->

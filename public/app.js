@@ -3,6 +3,10 @@ const DOM = {
   statusText: document.getElementById('status-text'),
   qrSection: document.getElementById('qr-section'),
   qrImage: document.getElementById('qr-image'),
+  pairingPhoneInput: document.getElementById('pairing-phone-input'),
+  btnGetPairingCode: document.getElementById('btn-get-pairing-code'),
+  pairingCodeDisplay: document.getElementById('pairing-code-display'),
+  pairingCodeVal: document.getElementById('pairing-code-val'),
   connectedSection: document.getElementById('connected-section'),
   connectedPhoneVal: document.getElementById('connected-phone-val'),
   groupsSelect: document.getElementById('groups-select'),
@@ -42,14 +46,19 @@ function updateStatusUI(data) {
 
   DOM.statusBadge.className = 'status-badge ' + status.toLowerCase();
 
-  if (status === 'AWAITING_QR') {
-    DOM.statusText.textContent = 'ESCANEAR CÓDIGO QR';
+  if (status === 'AWAITING_QR' || status === 'AWAITING_PAIRING_CODE' || status === 'INITIALIZING') {
+    DOM.statusText.textContent = status === 'AWAITING_PAIRING_CODE' ? 'INGRESAR CÓDIGO EN EN TELEFONO' : 'ESCANEAR QR / CÓDIGO';
     DOM.qrSection.classList.remove('hidden');
     DOM.connectedSection.classList.add('hidden');
     DOM.disconnectedSection.classList.add('hidden');
 
     if (data.qrCode) {
       DOM.qrImage.src = data.qrCode;
+    }
+
+    if (data.pairingCode) {
+      DOM.pairingCodeDisplay.classList.remove('hidden');
+      DOM.pairingCodeVal.textContent = data.pairingCode;
     }
   } else if (status === 'CONNECTED') {
     DOM.statusText.textContent = 'CONECTADO';
@@ -82,6 +91,39 @@ function setDisconnectedUI() {
   DOM.qrSection.classList.add('hidden');
   DOM.connectedSection.classList.add('hidden');
   DOM.disconnectedSection.classList.remove('hidden');
+}
+
+async function requestPairingCode() {
+  const phoneVal = (DOM.pairingPhoneInput ? DOM.pairingPhoneInput.value : '').trim();
+  if (!phoneVal) {
+    alert("Por favor ingresa tu número de WhatsApp con código de país (Ej: 18091234567).");
+    return;
+  }
+
+  DOM.btnGetPairingCode.disabled = true;
+  DOM.btnGetPairingCode.textContent = "⏳ SOLICITANDO...";
+
+  try {
+    const res = await fetch('/api/pairing-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: phoneVal })
+    });
+    const data = await res.json();
+
+    if (data.success && data.pairingCode) {
+      DOM.pairingCodeDisplay.classList.remove('hidden');
+      DOM.pairingCodeVal.textContent = data.pairingCode;
+      alert(`🔑 Código generado: ${data.pairingCode}\n\nEn tu celular ve a WhatsApp ➔ Dispositivos vinculados ➔ Vincular con el número de teléfono e ingresa este código.`);
+    } else {
+      alert("Error al solicitar código: " + (data.error || 'Error desconocido'));
+    }
+  } catch (err) {
+    alert("Error de red: " + err.message);
+  } finally {
+    DOM.btnGetPairingCode.disabled = false;
+    DOM.btnGetPairingCode.textContent = "🔑 GENERAR CÓDIGO";
+  }
 }
 
 async function loadGroups() {
@@ -177,6 +219,7 @@ async function sendTestMessage() {
 }
 
 // Bindings
+if (DOM.btnGetPairingCode) DOM.btnGetPairingCode.addEventListener('click', requestPairingCode);
 DOM.btnRefreshGroups.addEventListener('click', loadGroups);
 DOM.btnSaveGroup.addEventListener('click', saveGroupSelection);
 DOM.btnSendTestMsg.addEventListener('click', sendTestMessage);

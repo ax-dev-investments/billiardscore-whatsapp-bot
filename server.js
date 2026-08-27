@@ -21,6 +21,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 const botState = {
   status: 'INITIALIZING',
   qrCode: null,
+  pairingCode: null,
   connectedPhone: null,
   targetGroup: null
 };
@@ -60,7 +61,7 @@ async function connectToWhatsApp(resetAuth = false) {
     const authPath = path.join(__dirname, '.baileys_auth');
     
     if (resetAuth && fs.existsSync(authPath)) {
-      console.log('🧹 Limpiando credenciales antiguas para generar un nuevo código QR...');
+      console.log('🧹 Limpiando credenciales antiguas para generar un nuevo código QR / Pairing...');
       try {
         fs.rmSync(authPath, { recursive: true, force: true });
       } catch (e) {
@@ -85,7 +86,7 @@ async function connectToWhatsApp(resetAuth = false) {
       version,
       auth: authState.state,
       printQRInTerminal: false,
-      browser: ['BilliardScore Bot', 'Chrome', '1.0.0']
+      browser: ['Ubuntu', 'Chrome', '110.0.5563.146']
     });
 
     sock.ev.on('creds.update', authState.saveCreds);
@@ -106,15 +107,18 @@ async function connectToWhatsApp(resetAuth = false) {
       if (connection === 'close') {
         const statusCode = lastDisconnect?.error?.output?.statusCode;
         console.warn('⚠️ Conexión de WhatsApp cerrada. Código:', statusCode);
+        const isLoggedOut = statusCode === DisconnectReason.loggedOut;
         botState.status = 'DISCONNECTED';
         botState.qrCode = null;
+        botState.pairingCode = null;
 
-        // Auto-limpieza y reconexión con reseteo de auth
-        setTimeout(() => connectToWhatsApp(true), 2000);
+        // Si se cerró sesión explícitamente, reseteamos credenciales. Si no, reconectamos normalmente.
+        setTimeout(() => connectToWhatsApp(isLoggedOut), 3000);
       } else if (connection === 'open') {
         console.log('✅ Cliente de WhatsApp Conectado y Listo!');
         botState.status = 'CONNECTED';
         botState.qrCode = null;
+        botState.pairingCode = null;
         botState.connectedPhone = sock.user ? sock.user.id.split(':')[0].split('@')[0] : 'Conectado';
       }
     });
@@ -128,12 +132,44 @@ connectToWhatsApp();
 
 // ================= ROUTING & API =================
 
+// Endpoint para solicitar código de vinculación por número de teléfono
+app.post('/api/pairing-code', async (req, res) => {
+  try {
+    const { phone } = req.body;
+    if (!phone) {
+      return res.status(400).json({ error: 'Debes proporcionar un número de teléfono.' });
+    }
+
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (cleanPhone.length < 8) {
+      return res.status(400).json({ error: 'Por favor ingresa un número de teléfono válido con código de país (Ej: 18091234567).' });
+    }
+
+    if (!sock) {
+      return res.status(400).json({ error: 'El servidor bot no está listo aún. Intenta en unos segundos.' });
+    }
+
+    console.log(`📱 Solicitando Código de Vinculación para el número: ${cleanPhone}...`);
+    const code = await sock.requestPairingCode(cleanPhone);
+    const formattedCode = code ? code.match(/.{1,4}/g)?.join('-') || code : code;
+
+    botState.pairingCode = formattedCode;
+    botState.status = 'AWAITING_PAIRING_CODE';
+
+    res.json({ success: true, pairingCode: formattedCode });
+  } catch (err) {
+    console.error('Error al generar código de vinculación:', err);
+    res.status(500).json({ error: 'Error al solicitar código: ' + err.message });
+  }
+});
+
 // Endpoint de reconexión forzada
 app.post('/api/reconnect', async (req, res) => {
   try {
     console.log('🔄 Forzando regeneración de QR por solicitud del cliente...');
     botState.status = 'INITIALIZING';
     botState.qrCode = null;
+    botState.pairingCode = null;
     connectToWhatsApp(true);
     res.json({ success: true, message: 'Generando nuevo código QR...' });
   } catch (err) {
@@ -143,10 +179,11 @@ app.post('/api/reconnect', async (req, res) => {
 
 // Estado actual con auto-recuperación y soporte de reset por URL (?reset=true)
 app.get('/api/status', (req, res) => {
-  if (req.query.reset === 'true' || botState.status === 'DISCONNECTED') {
-    console.log('⚡ Reseteo de sesión detectado. Autolimpieza y regeneración de QR iniciada...');
+  if (req.query.reset === 'true') {
+    console.log('⚡ Reseteo de sesión detectado por URL...');
     botState.status = 'INITIALIZING';
     botState.qrCode = null;
+    botState.pairingCode = null;
     botState.connectedPhone = null;
     connectToWhatsApp(true);
   }
@@ -154,6 +191,7 @@ app.get('/api/status', (req, res) => {
   res.json({
     status: botState.status,
     qrCode: botState.qrCode,
+    pairingCode: botState.pairingCode,
     connectedPhone: botState.connectedPhone,
     targetGroup: botState.targetGroup
   });
