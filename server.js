@@ -232,6 +232,16 @@ app.post('/api/config', (req, res) => {
 });
 
 // Enviar resultado de partido desde BilliardScore
+function formatWhatsAppJid(phoneStr) {
+  if (!phoneStr) return null;
+  let digits = String(phoneStr).replace(/\D/g, '');
+  if (!digits) return null;
+  if (digits.length === 10) {
+    digits = '1' + digits;
+  }
+  return `${digits}@s.whatsapp.net`;
+}
+
 app.post('/api/send-match-result', async (req, res) => {
   if (botState.status !== 'CONNECTED' || !sock) {
     return res.status(400).json({ error: 'El servidor bot no está conectado a WhatsApp.' });
@@ -268,9 +278,8 @@ app.post('/api/send-match-result', async (req, res) => {
   try {
     // 1. MODO PRUEBAS: Si se especificó customTargetPhone, enviar ÚNICAMENTE a ese número personal
     if (customTargetPhone) {
-      const cleanDigits = customTargetPhone.replace(/\D/g, '');
-      if (cleanDigits) {
-        const jid = `${cleanDigits}@s.whatsapp.net`;
+      const jid = formatWhatsAppJid(customTargetPhone);
+      if (jid) {
         await sock.sendMessage(jid, { text: message });
         console.log(`🧪 Resultado de prueba enviado a número personal: ${jid}`);
         return res.json({ success: true, message: 'Enviado a número personal de pruebas' });
@@ -294,9 +303,8 @@ app.post('/api/send-match-result', async (req, res) => {
 
     // 2b. Enviar a Jugador 1 (si tiene teléfono guardado)
     if (player1Phone) {
-      const cleanP1 = player1Phone.replace(/\D/g, '');
-      if (cleanP1) {
-        const jidP1 = `${cleanP1}@s.whatsapp.net`;
+      const jidP1 = formatWhatsAppJid(player1Phone);
+      if (jidP1) {
         try {
           await sock.sendMessage(jidP1, { text: message });
           console.log(`📱 Resultado enviado a ${player1} (${jidP1})`);
@@ -309,9 +317,8 @@ app.post('/api/send-match-result', async (req, res) => {
 
     // 2c. Enviar a Jugador 2 (si tiene teléfono guardado)
     if (player2Phone) {
-      const cleanP2 = player2Phone.replace(/\D/g, '');
-      if (cleanP2) {
-        const jidP2 = `${cleanP2}@s.whatsapp.net`;
+      const jidP2 = formatWhatsAppJid(player2Phone);
+      if (jidP2) {
         try {
           await sock.sendMessage(jidP2, { text: message });
           console.log(`📱 Resultado enviado a ${player2} (${jidP2})`);
