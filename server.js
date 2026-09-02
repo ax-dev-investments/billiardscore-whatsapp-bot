@@ -258,6 +258,12 @@ function formatWhatsAppJid(phoneStr) {
   return `${digits}@s.whatsapp.net`;
 }
 
+// Registro de claves de los últimos mensajes enviados por mesa para permitir edición in-place en WhatsApp
+const lastSentMessageKeys = {
+  table1: { groupMsgKey: null, p1MsgKey: null, p2MsgKey: null, testMsgKey: null, timestamp: 0 },
+  table2: { groupMsgKey: null, p1MsgKey: null, p2MsgKey: null, testMsgKey: null, timestamp: 0 }
+};
+
 app.post('/api/send-match-result', async (req, res) => {
   if (botState.status !== 'CONNECTED' || !sock) {
     return res.status(400).json({ error: 'El servidor bot no está conectado a WhatsApp.' });
@@ -265,8 +271,11 @@ app.post('/api/send-match-result', async (req, res) => {
 
   const {
     tableNum, modeText, player1, player2, score1, score2, winner, isDraw, raceTo, rawMessage,
-    customTargetPhone, player1Phone, player2Phone
+    customTargetPhone, player1Phone, player2Phone, isEdit
   } = req.body;
+
+  const tableKey = tableNum === 2 ? 'table2' : 'table1';
+  const tableHistory = lastSentMessageKeys[tableKey];
 
   let message = rawMessage;
   if (!message) {
@@ -291,12 +300,30 @@ app.post('/api/send-match-result', async (req, res) => {
     }
   }
 
+  if (isEdit) {
+    message = `✏️ [CORREGIDO] ${message}`;
+  }
+
   try {
     // 1. MODO PRUEBAS: Si se especificó customTargetPhone, enviar ÚNICAMENTE a ese número personal
     if (customTargetPhone) {
       const jid = formatWhatsAppJid(customTargetPhone);
       if (jid) {
-        await sock.sendMessage(jid, { text: message });
+        let sentMsg;
+        if (isEdit && tableHistory.testMsgKey) {
+          try {
+            await sock.sendMessage(jid, { text: message, edit: tableHistory.testMsgKey });
+            console.log(`✏️ Mensaje de prueba editado in-place en WhatsApp: ${jid}`);
+            return res.json({ success: true, message: 'Mensaje de prueba editado en WhatsApp' });
+          } catch (errEdit) {
+            console.warn('No se pudo editar el mensaje previo, enviando nuevo:', errEdit.message);
+          }
+        }
+        sentMsg = await sock.sendMessage(jid, { text: message });
+        if (sentMsg && sentMsg.key) {
+          tableHistory.testMsgKey = sentMsg.key;
+          tableHistory.timestamp = Date.now();
+        }
         console.log(`🧪 Resultado de prueba enviado a número personal: ${jid}`);
         return res.json({ success: true, message: 'Enviado a número personal de pruebas' });
       }
@@ -309,9 +336,22 @@ app.post('/api/send-match-result', async (req, res) => {
     const groupJid = req.body.targetGroupId || (botState.targetGroup ? botState.targetGroup.id : null);
     if (groupJid) {
       try {
-        await sock.sendMessage(groupJid, { text: message });
-        console.log(`📢 Resultado publicado en el grupo del club: ${groupJid}`);
-        delivered.push('Grupo del Club');
+        if (isEdit && tableHistory.groupMsgKey) {
+          try {
+            await sock.sendMessage(groupJid, { text: message, edit: tableHistory.groupMsgKey });
+            console.log(`✏️ Resultado editado in-place en el grupo del club: ${groupJid}`);
+            delivered.push('Grupo del Club (Editado)');
+          } catch (errEdit) {
+            const sentGroup = await sock.sendMessage(groupJid, { text: message });
+            if (sentGroup && sentGroup.key) tableHistory.groupMsgKey = sentGroup.key;
+            delivered.push('Grupo del Club');
+          }
+        } else {
+          const sentGroup = await sock.sendMessage(groupJid, { text: message });
+          if (sentGroup && sentGroup.key) tableHistory.groupMsgKey = sentGroup.key;
+          console.log(`📢 Resultado publicado en el grupo del club: ${groupJid}`);
+          delivered.push('Grupo del Club');
+        }
       } catch (errGroup) {
         console.error('Error enviando al grupo del club:', errGroup.message);
       }
@@ -322,9 +362,22 @@ app.post('/api/send-match-result', async (req, res) => {
       const jidP1 = formatWhatsAppJid(player1Phone);
       if (jidP1) {
         try {
-          await sock.sendMessage(jidP1, { text: message });
-          console.log(`📱 Resultado enviado a ${player1} (${jidP1})`);
-          delivered.push(`Jugador 1 (${player1})`);
+          if (isEdit && tableHistory.p1MsgKey) {
+            try {
+              await sock.sendMessage(jidP1, { text: message, edit: tableHistory.p1MsgKey });
+              console.log(`✏️ Resultado editado in-place para ${player1}`);
+              delivered.push(`Jugador 1 (${player1}) [Editado]`);
+            } catch (e) {
+              const sentP1 = await sock.sendMessage(jidP1, { text: message });
+              if (sentP1 && sentP1.key) tableHistory.p1MsgKey = sentP1.key;
+              delivered.push(`Jugador 1 (${player1})`);
+            }
+          } else {
+            const sentP1 = await sock.sendMessage(jidP1, { text: message });
+            if (sentP1 && sentP1.key) tableHistory.p1MsgKey = sentP1.key;
+            console.log(`📱 Resultado enviado a ${player1} (${jidP1})`);
+            delivered.push(`Jugador 1 (${player1})`);
+          }
         } catch (errP1) {
           console.error(`Error enviando a ${player1}:`, errP1.message);
         }
@@ -336,14 +389,29 @@ app.post('/api/send-match-result', async (req, res) => {
       const jidP2 = formatWhatsAppJid(player2Phone);
       if (jidP2) {
         try {
-          await sock.sendMessage(jidP2, { text: message });
-          console.log(`📱 Resultado enviado a ${player2} (${jidP2})`);
-          delivered.push(`Jugador 2 (${player2})`);
+          if (isEdit && tableHistory.p2MsgKey) {
+            try {
+              await sock.sendMessage(jidP2, { text: message, edit: tableHistory.p2MsgKey });
+              console.log(`✏️ Resultado editado in-place para ${player2}`);
+              delivered.push(`Jugador 2 (${player2}) [Editado]`);
+            } catch (e) {
+              const sentP2 = await sock.sendMessage(jidP2, { text: message });
+              if (sentP2 && sentP2.key) tableHistory.p2MsgKey = sentP2.key;
+              delivered.push(`Jugador 2 (${player2})`);
+            }
+          } else {
+            const sentP2 = await sock.sendMessage(jidP2, { text: message });
+            if (sentP2 && sentP2.key) tableHistory.p2MsgKey = sentP2.key;
+            console.log(`📱 Resultado enviado a ${player2} (${jidP2})`);
+            delivered.push(`Jugador 2 (${player2})`);
+          }
         } catch (errP2) {
           console.error(`Error enviando a ${player2}:`, errP2.message);
         }
       }
     }
+
+    tableHistory.timestamp = Date.now();
 
     if (delivered.length > 0) {
       return res.json({ success: true, deliveredTo: delivered });
